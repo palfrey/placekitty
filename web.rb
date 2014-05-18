@@ -13,6 +13,10 @@ get '/credits' do
   erb :credits
 end
 
+get '/panda' do
+  erb :panda
+end
+
 def image_for (width, height, grayscale = false)
   size = "#{width}x#{height}"
 
