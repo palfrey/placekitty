@@ -1,31 +1,56 @@
 require 'sinatra'
 
+NUMBER_REGEX = /\d+/
+
+set :public_folder, 'public'
+set :views, settings.root + '/templates'
+
 get '/' do
-  "Hello World!"
+  erb :index
 end
 
-def image_for size
-  images = Dir.entries(File.dirname(__FILE__) + '/images').reject! { |x| x[0] == '.' }
-
-  File.dirname(__FILE__) + '/images/' + images["#{params[:width]}x#{params[:height]}".hash % images.length]
+get '/credits' do
+  erb :credits
 end
 
-get '/:width/:height' do
-  size = "#{params[:width]}x#{params[:height]}"
+def image_for (width, height, grayscale = false)
+  size = "#{width}x#{height}"
 
-  thumb = File.dirname(__FILE__) + "/thumbs/#{size}.jpg"
+  if grayscale
+    thumb = File.dirname(__FILE__) + "/thumbs/#{size}.jpg"
+  else
+    thumb = File.dirname(__FILE__) + "/thumbs/g/#{size}.jpg"
+  end
 
   unless File.exists?(thumb) and (Time.now - File.stat(thumb).mtime <= 3600)
-    image = image_for(size)
-
     FileUtils.mkdir_p(File.dirname(thumb))
 
-    command = "convert #{image} -thumbnail #{size}^ -gravity center -extent #{size} #{thumb}"
+    images = Dir.entries(File.dirname(__FILE__) + '/images').reject! { |x| x[0] == '.' }
+
+    image = File.dirname(__FILE__) + '/images/' + images["#{params[:width]}x#{params[:height]}".hash % images.length]
+
+    extra = ''
+
+    extra += '-set colorspace Gray' if grayscale
+
+    command = "convert #{image} -thumbnail #{size}^ -gravity center -extent #{size} #{extra} #{thumb}"
 
     output = `#{command} 2>&1`
 
     raise "couldn't run #{command}: #{output}" unless $?.success?
   end
 
-  send_file thumb, :type => :jpg
+  thumb
+end
+
+get '/:width/:height' do
+  raise Sinatra::NotFound unless params[:width].match NUMBER_REGEX and params[:height].match NUMBER_REGEX
+
+  send_file image_for(params[:width], params[:height])
+end
+
+get '/g/:width/:height' do
+  raise Sinatra::NotFound unless params[:width].match NUMBER_REGEX and params[:height].match NUMBER_REGEX
+
+  send_file image_for(params[:width], params[:height], true)
 end

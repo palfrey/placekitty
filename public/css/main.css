@@ -1,0 +1,12 @@
+h1 {
+  font-family: "hydrophilia-iced",sans-serif;
+}
+
+h1 a {
+  color: inherit;
+}
+
+.page {
+  max-width: 45em;
+  margin: auto;
+}
